@@ -1,0 +1,418 @@
+(function () {
+  // events page fallback
+  if (
+    window.location.pathname.includes("pages/event") &&
+    !document.getElementById("osc-iframe")
+  ) {
+    var js_src = document.currentScript.getAttribute("src");
+    var src_url = new URL(js_src);
+    var js_src_params = new URLSearchParams(src_url.search);
+    if (
+      js_src_params &&
+      js_src_params.get("api_key") == "a1b2a6d6b4f84634f2c1e5ceb0805b586029f429"
+    ) {
+      document.getElementById(
+        "main"
+      ).innerHTML = `<div id="socialchat-widget" api-key="${get_api_key()}"></div>`;
+      var script = document.createElement("script");
+      script.src = "https://socialchat.ai/static/js/socialchat_events.js";
+      document.head.appendChild(script);
+      initialize_cart_update();
+      return;
+    }
+  }
+
+  var initialized = false;
+
+  if (
+    window.location.href.includes("account/login") ||
+    window.location.href.includes("account/register")
+  ) {
+    return;
+  }
+
+  window.addEventListener("message", function (event) {
+    if (
+      event.data.socialchat_iframe_height &&
+      event.data.socialchat_iframe_id == "socialchat-upcoming-event-popup"
+    ) {
+      var iframe_height = parseInt(event.data.socialchat_iframe_height);
+      iframe_height = iframe_height.toString() + "px";
+      document.getElementById(
+        `${event.data.socialchat_iframe_id}`
+      ).style.height = iframe_height;
+    }
+  });
+
+  function populate_style() {
+    var styles = `
+      #socialchat-main-wrapper {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        z-index: 1000;
+      }
+      #socialchat-exit-popup {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 0;
+        background: rgba(33, 33, 33, 0.8);
+        transform: translateY(60%) scale(0);
+        transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+      }
+      #socialchat-exit-popup.visible {
+        transform: translateY(0) scale(1);
+      }
+      .socialchat-popup-container {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: white;
+        width: 80vw;
+        max-width: 720px;
+        overflow: hidden;
+      }
+      .socialchat-popup-close, .socialchat-small-banner-close {
+        position: absolute;
+        right: 20px;
+        top: 20px;
+        width: 20px;
+        height: 20px;
+      }
+      .socialchat-small-banner-close {
+        right: 15px;
+      }
+      .socialchat-popup-close:hover, .socialchat-small-banner-close:hover {
+        opacity: .75;
+        cursor: pointer;
+      }
+      .socialchat-popup-close:before,
+      .socialchat-popup-close:after,
+      .socialchat-small-banner-close:before,
+      .socialchat-small-banner-close:after {
+        position: absolute;
+        left: 15px;
+        content: ' ';
+        height: 18px;
+        width: 2px;
+        background-color: #333;
+      }
+      .socialchat-small-banner-close:before,
+      .socialchat-small-banner-close:after {
+        background-color: #ffffff;
+      }
+      .socialchat-popup-close:before,
+      .socialchat-small-banner-close:before {
+        transform: rotate(45deg);
+      }
+      .socialchat-popup-close:after,
+      .socialchat-small-banner-close:after {
+        transform: rotate(-45deg);
+      }
+      #socialchat-small-banner {
+        align-self: flex-end;
+        background-color: #000000;
+        margin: 0px 0px 30px 30px;
+        padding: 12px 35px 12px 20px;
+        font-size: 16px;
+        font-weight: 600;
+        border-radius: 8px;
+        text-decoration: none;
+      }
+      .socialchat-banner-title {
+        color: #ffffff;
+        font-size: 18px;
+      }
+      @media (max-width: 767px) {
+        #socialchat-small-banner {
+          margin: 0px 0px 20px 20px;
+        }
+        .socialchat-banner-title {
+          font-size: 14px;
+        }
+        .socialchat-small-banner-close {
+          top: 12px;
+        }
+      }
+    `;
+
+    var styleSheet = document.createElement("style");
+    styleSheet.type = "text/css";
+    styleSheet.innerText = styles;
+    document.head.appendChild(styleSheet);
+  }
+  var POPUP_CADENCE_DAYS = 1;
+  var SHOW_POPOUT_AFTER = 15000;
+
+  function get_api_key() {
+    var js_src = document.currentScript.getAttribute("src");
+    var src_url = new URL(js_src);
+    var params = new URLSearchParams(src_url.search);
+    return params.get("api_key");
+  }
+
+  function get_customer_id() {
+    try {
+      return __st.cid;
+    } catch {
+      return null;
+    }
+  }
+
+  function get_popup_url() {
+    if (
+      document.getElementsByClassName("osc-events-widget").length > 0 ||
+      document.getElementById("socialchat-widget-iframe") ||
+      document.getElementById("socialchat-widget")
+    ) {
+      return;
+    }
+
+    var api_key = get_api_key();
+    if (!api_key) {
+      return;
+    }
+
+    const request = new XMLHttpRequest();
+    var api_url = "https://socialchat.ai/api/widget/events-url/get?is_popup=1";
+    var customer_id = get_customer_id();
+    if (customer_id) {
+      api_url += `&customer_id=${customer_id}`;
+    }
+    request.onload = function () {
+      if (!this.responseText) {
+        return;
+      }
+      const responseJson = JSON.parse(this.responseText);
+      if (responseJson && responseJson.popup) {
+        initialize_exit_popup(responseJson.popup);
+      }
+    };
+    request.open("GET", api_url, true);
+    request.withCredentials = true;
+    request.setRequestHeader("Authorization", `Token ${api_key}`);
+    request.send();
+  }
+
+  function initialize_exit_popup(popup) {
+    var shown = false;
+    var exit_popup = document.createElement("div");
+    exit_popup.setAttribute("id", "socialchat-main-wrapper");
+    var show_small_banner =
+      popup.small_banner.event_url &&
+      popup.small_banner.title &&
+      popup.small_banner.eligible &&
+      get_cookie("socialchat-small-banner") != "true";
+    if (popup.url) {
+      // always load iframe if small banner is loaded, required for event logging
+      var socialchat_popup_iframe = document.createElement("iframe");
+      socialchat_popup_iframe.src = `${popup.url}${window.location.search}`;
+      socialchat_popup_iframe.onload = function () {
+        if (get_cookie("socialchat-popup") != "true" && popup.eligible) {
+          function show_popup() {
+            shown = true;
+            set_cookie("socialchat-popup", true, POPUP_CADENCE_DAYS);
+            document.getElementById(
+              "socialchat-upcoming-event-popup"
+            ).style.display = "block";
+            document
+              .getElementById("socialchat-exit-popup")
+              .classList.add("visible");
+            document.body.style.overflow = "hidden";
+            send_popup_event_to_child_frame("open", "popup");
+          }
+          document.addEventListener("mouseout", (e) => {
+            // show popup on exit
+            if (
+              !shown &&
+              !e.toElement &&
+              !e.relatedTarget &&
+              document.getElementById("socialchat-exit-popup")
+            ) {
+              show_popup();
+            }
+          });
+          setTimeout(function () {
+            if (!shown && get_cookie("socialchat-popup") != "true") {
+              show_popup();
+            }
+          }, SHOW_POPOUT_AFTER);
+        }
+
+        document.addEventListener("click", function (event) {
+          if (
+            document.getElementById("socialchat-exit-popup") &&
+            document
+              .getElementById("socialchat-exit-popup")
+              .matches(".visible") &&
+            (event.target.matches(".socialchat-popup-close") ||
+              !event.target.matches("socialchat-popup-container"))
+          ) {
+            document
+              .getElementById("socialchat-exit-popup")
+              .classList.remove("visible");
+            document.body.style.overflow = null;
+            send_popup_event_to_child_frame("close", "popup");
+          }
+          if (event.target.matches(".socialchat-small-banner-close")) {
+            set_cookie("socialchat-small-banner", true, POPUP_CADENCE_DAYS);
+            document.getElementById("socialchat-small-banner").style.display =
+              "none";
+            send_popup_event_to_child_frame("close", "small-banner");
+          }
+          if (event.target.matches(".socialchat-banner-title")) {
+            send_popup_event_to_child_frame("open", "small-banner");
+          }
+        });
+
+        if (show_small_banner) {
+          document.getElementById("socialchat-small-banner").style.display =
+            "block";
+          document.getElementsByClassName(
+            "socialchat-small-banner-close"
+          )[0].style.display = "block";
+          send_popup_event_to_child_frame("impression", "small-banner");
+        }
+      };
+      socialchat_popup_iframe.setAttribute(
+        "title",
+        "Social Chat Upcoming Event"
+      );
+      socialchat_popup_iframe.setAttribute(
+        "id",
+        "socialchat-upcoming-event-popup"
+      );
+      socialchat_popup_iframe.setAttribute("frameborder", 0);
+      socialchat_popup_iframe.setAttribute("width", "100%");
+      socialchat_popup_iframe.setAttribute("height", "100%");
+      socialchat_popup_iframe.style.cssText =
+        "width: 100%; height: 100%; display: none;";
+      socialchat_popup_iframe.allowFullscreen = true;
+
+      var popup_close_element = document.createElement("span");
+      popup_close_element.className = "socialchat-popup-close";
+
+      var socialchat_popup_container = document.createElement("div");
+      socialchat_popup_container.className = "socialchat-popup-container";
+      socialchat_popup_container.appendChild(popup_close_element);
+      socialchat_popup_container.appendChild(socialchat_popup_iframe);
+
+      var socialchat_exit_popup = document.createElement("div");
+      socialchat_exit_popup.setAttribute("id", "socialchat-exit-popup");
+      socialchat_exit_popup.appendChild(socialchat_popup_container);
+
+      exit_popup.appendChild(socialchat_exit_popup);
+    }
+    if (show_small_banner) {
+      var socialchat_banner_title = document.createElement("div");
+      socialchat_banner_title.className = "socialchat-banner-title";
+      socialchat_banner_title.appendChild(
+        document.createTextNode(`${popup.small_banner.title}`)
+      );
+
+      var socialchat_small_banner = document.createElement("a");
+      socialchat_small_banner.setAttribute("id", "socialchat-small-banner");
+      socialchat_small_banner.setAttribute(
+        "href",
+        `${popup.small_banner.event_url}`
+      );
+      socialchat_small_banner.style.display = "none";
+      socialchat_small_banner.appendChild(socialchat_banner_title);
+
+      var socialchat_small_banner_close = document.createElement("span");
+      socialchat_small_banner_close.className = "socialchat-small-banner-close";
+      socialchat_small_banner_close.style.display = "none";
+
+      exit_popup.appendChild(socialchat_small_banner);
+      exit_popup.appendChild(socialchat_small_banner_close);
+    }
+    if (!exit_popup.hasChildNodes()) {
+      return;
+    }
+    populate_style();
+    document.body.appendChild(exit_popup);
+  }
+
+  function send_popup_event_to_child_frame(action, component) {
+    document
+      .getElementById("socialchat-upcoming-event-popup")
+      .contentWindow.postMessage(
+        {
+          action: action,
+          component: component,
+        },
+        "*"
+      );
+  }
+
+  function set_cookie(cname, cvalue, exdays) {
+    const d = new Date();
+    d.setTime(d.getTime() + exdays * 24 * 60 * 60 * 1000);
+    let expires = `expires=${d.toUTCString()}`;
+    document.cookie = `${cname}=${cvalue};${expires};path=/`;
+  }
+
+  function get_cookie(cname) {
+    let name = `${cname}=`;
+    let decodedCookie = decodeURIComponent(document.cookie);
+    let ca = decodedCookie.split(";");
+    for (let i = 0; i < ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) == " ") {
+        c = c.substring(1);
+      }
+      if (c.indexOf(name) == 0) {
+        return c.substring(name.length, c.length);
+      }
+    }
+    return "";
+  }
+
+  function initialize_cart_update() {
+    var api_key = get_api_key();
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", "/cart.js", true);
+    xhr.responseType = "json";
+    xhr.onload = function (e) {
+      if (this.status != 200) {
+        return;
+      }
+      var xhr = new XMLHttpRequest();
+      xhr.open("POST", "https://socialchat.ai/api/cart/update", true);
+      xhr.responseType = "json";
+      xhr.setRequestHeader(
+        "Content-Type",
+        "application/x-www-form-urlencoded; charset=UTF-8"
+      );
+      xhr.setRequestHeader("Authorization", `Token ${api_key}`);
+      xhr.withCredentials = true;
+      var cart_payload = [];
+      this.response.items.forEach((item) =>
+        cart_payload.push(
+          JSON.stringify({
+            id: item.variant_id,
+            quantity: item.quantity,
+            title: item.title,
+            price: item.price,
+          })
+        )
+      );
+      var request_json = {
+        cart_payload: JSON.stringify(cart_payload),
+        currency: this.response.currency,
+        customer_id: __st.cid,
+      };
+      xhr.send(new URLSearchParams(request_json).toString());
+    };
+    xhr.send();
+  }
+
+  if (!initialized) {
+    initialized = true;
+    get_popup_url();
+    initialize_cart_update();
+  }
+})();
