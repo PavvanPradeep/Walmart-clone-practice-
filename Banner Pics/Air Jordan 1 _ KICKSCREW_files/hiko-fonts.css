@@ -1,0 +1,135 @@
+.fax {
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
+    display: var(--fa-display, inline-block);
+    font-style: normal;
+    font-variant: normal;
+    line-height: 1;
+    text-rendering: auto;
+}
+
+:root,
+:host {
+    --fa-font-brands: normal 400 1em/1 "Font Awesome Variants";
+}
+
+@font-face {
+    font-family: "Font Awesome Variants";
+    font-style: normal;
+    font-weight: 400;
+    font-display: block;
+    src: url("./fa-brands-400.woff2.png") format("woff2");
+}
+
+.fax {
+    font-family: "Font Awesome Variants" !important;
+    font-weight: 400;
+}
+
+.fax-google::before {
+    content: "\f1a0";
+}
+
+.fax-facebook::before {
+    content: "\f09a";
+}
+
+.fax-facebook-f::before {
+    content: "\f39e";
+}
+
+.fax-facebook-square::before {
+    content: "\f082";
+}
+
+.fax-twitter::before {
+    content: "\f099";
+}
+
+.fax-twitter-square::before {
+    content: "\f081";
+}
+
+.fax-amazon::before {
+    content: "\f270";
+}
+
+.fax-amazon-pay::before {
+    content: "\f42c";
+}
+
+.fax-linkedin-in::before {
+    content: "\f0e1";
+}
+
+.fax-linkedin::before {
+    content: "\f08c";
+}
+
+.fax-spotify::before {
+    content: "\f1bc";
+}
+
+.fax-microsoft::before {
+    content: "\f3ca";
+}
+
+.fax-yahoo::before {
+    content: "\f19e";
+}
+
+.fax-line::before {
+    content: "\f3c0";
+}
+
+.fax-github::before {
+    content: "\f09b";
+}
+
+.fax-github-square::before {
+    content: "\f092";
+}
+
+.fax-snapchat::before {
+    content: "\f2ab";
+}
+
+.fax-snapchat::before {
+    content: "\f2ab";
+}
+
+.fax-snapchat-ghost:before {
+    content: "\f2ab";
+}
+
+.fax-tumblr::before {
+    content: "\f173";
+}
+
+.fax-tumblr-square::before {
+    content: "\f174";
+}
+
+.fax-twitch::before {
+    content: "\f1e8";
+}
+
+.fax-discord::before {
+    content: "\f392";
+}
+
+.fax-vk::before {
+    content: "\f189";
+}
+
+.fax-apple::before {
+    content: "\f179";
+}
+
+.fax-tiktok:before {
+    content: "\e07b";
+}
+
+.fax-yandex:before {
+    content: "\f413";
+}

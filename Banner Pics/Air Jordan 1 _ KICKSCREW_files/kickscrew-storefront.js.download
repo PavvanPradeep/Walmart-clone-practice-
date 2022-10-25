@@ -1,0 +1,15 @@
+function makeRequest(method, url) {
+  let xhr = new XMLHttpRequest();	
+  xhr.open(method, url, false); // `false` makes the request synchronous
+  xhr.setRequestHeader('Accept', 'application/json');    
+  xhr.send(null);
+}
+                     
+function emptyCart(){
+  try {
+    const res = makeRequest('GET','/cart/clear');    
+    console.log("empty cart done");
+  } catch(err) {
+    console.log(err);
+  }
+}                                  
